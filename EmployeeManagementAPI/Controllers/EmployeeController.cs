@@ -11,45 +11,107 @@ namespace EmployeeManagementAPI.Controllers
     public class EmployeeController : ControllerBase
     {
         [HttpGet]
-        public IEnumerable<Employee> Get()
+        public ActionResult<ResponseModel<IEnumerable<EmployeeModel>>> GetAll()
         {
-            return employees.Values;
+            return StatusCode(StatusCodes.Status200OK, new ResponseModel<IEnumerable<EmployeeModel>>() { 
+                Success = true,
+                Value = employees.Values
+            });
         }
 
         [HttpGet("{id}")]
-        public ActionResult<Employee> GetById(int id)
+        public ActionResult<ResponseModel<EmployeeModel>> GetById(int id)
         {
-            return employees.TryGetValue(id, out var employee) ? Ok(employee) : NotFound();
+            bool success = employees.TryGetValue(id, out var employee);
+            if (success)
+                return StatusCode(StatusCodes.Status200OK, new ResponseModel<EmployeeModel>()
+                {
+                    Success = true,
+                    Value = employee
+                });
+            else
+                return StatusCode(StatusCodes.Status404NotFound, new ResponseModel<EmployeeModel>()
+                {
+                    Success = false,
+                    Message = $"Employee with specified id = {id} does not exist."
+                });
         }
 
         [HttpPost]
-        public ActionResult<Employee> Add([FromBody] Employee value)
+        public ActionResult<ResponseModel<EmployeeModel>> Add([FromBody] EmployeeModel value)
         {
-            if((value.Salary <= 0) || value.Name.Equals("") || value.Position.Equals("") || value.Department.Equals(""))
-                return BadRequest();
+            if (value.Salary <= 0)
+                return StatusCode(StatusCodes.Status400BadRequest, new ResponseModel<EmployeeModel>()
+                {
+                    Success = false,
+                    Message = "Specified salary has to be positive."
+                });
+            else if (value.Name.Equals(string.Empty))
+                return StatusCode(StatusCodes.Status400BadRequest, new ResponseModel<EmployeeModel>()
+                {
+                    Success = false,
+                    Message = "Specified name cannot be empty."
+                });
+            else if (value.Position.Equals(string.Empty))
+                return StatusCode(StatusCodes.Status400BadRequest, new ResponseModel<EmployeeModel>()
+                {
+                    Success = false,
+                    Message = "Specified position cannot be empty."
+                });
+            else if (value.Department.Equals(string.Empty))
+                return StatusCode(StatusCodes.Status400BadRequest, new ResponseModel<EmployeeModel>()
+                {
+                    Success = false,
+                    Message = "Specified department cannot be empty."
+                });
 
             value.Id = employees.Count() + 1;
-            return employees.TryAdd(value.Id, value) ? Created() : BadRequest();
+            employees.Add(value.Id, value);
+
+            return StatusCode(StatusCodes.Status201Created, new ResponseModel<EmployeeModel>()
+            {
+                Success = true,
+                Value = value
+            });
         }
 
         [HttpDelete("{id}")]
-        public ActionResult Delete(int id)
+        public ActionResult<ResponseModel<bool>> Delete(int id)
         {
-            return employees.Remove(id) ? Ok() : NotFound();
+            bool success = employees.Remove(id);
+            if (success)
+                return StatusCode(StatusCodes.Status200OK, new ResponseModel<bool>()
+                {
+                    Success = true,
+                    Value = true
+                });
+            else
+                return StatusCode(StatusCodes.Status404NotFound, new ResponseModel<bool>()
+                {
+                    Success = false,
+                    Message = $"Cannot remove employee with invalid id = {id}"
+                });
         }
 
 
         [HttpPut]
-        public ActionResult Update([FromBody] Employee value)
+        public ActionResult<ResponseModel<bool>> Update([FromBody] EmployeeModel value)
         {
-            if (employees.ContainsKey(value.Id))
+            if (!employees.ContainsKey(value.Id))
+                return StatusCode(StatusCodes.Status404NotFound, new ResponseModel<bool>()
+                {
+                    Success = false,
+                    Message = $"Cannot update employee with invalid id = {value.Id}"
+                });
+            
+            employees[value.Id] = value;
+            return StatusCode(StatusCodes.Status200OK, new ResponseModel<bool>()
             {
-                employees[value.Id] = value;
-                return Ok(employees[value.Id]);
-            }
-            else return NotFound();
+                Success = true,
+                Value = true
+            });
         }
 
-        static private Dictionary<int, Models.Employee> employees = new();
+        static private Dictionary<int, Models.EmployeeModel> employees = new();
     }
 }
