@@ -10,6 +10,7 @@ namespace EmployeeManagementAPI.Controllers
     [ApiController]
     public class EmployeeController : ControllerBase
     {
+        #region GetAll
         /// <summary>
         /// [GET] /api/employees: get all employees.
         /// </summary>
@@ -22,7 +23,9 @@ namespace EmployeeManagementAPI.Controllers
                 Value = employees.Values
             });
         }
-        
+        #endregion
+
+        #region GetById
         /// <summary>
         /// [GET] /api/employees/{id}: get employee with specified id
         /// </summary>
@@ -45,7 +48,9 @@ namespace EmployeeManagementAPI.Controllers
                     Message = $"Employee with specified id = {id} does not exist."
                 });
         }
+        #endregion
 
+        #region Add
         /// <summary>
         /// [POST] /api/employees: add employe
         /// </summary>
@@ -88,7 +93,9 @@ namespace EmployeeManagementAPI.Controllers
                 Value = value
             });
         }
+        #endregion
 
+        #region Delete
         /// <summary>
         /// [DELETE]: /api/employees/{id}: remove an employee entry
         /// </summary>
@@ -111,7 +118,9 @@ namespace EmployeeManagementAPI.Controllers
                     Message = $"Cannot remove employee with invalid id = {id}"
                 });
         }
+        #endregion
 
+        #region Update
         /// <summary>
         /// [PUT]: /api/employees: update the fields of an employee entry
         /// </summary>
@@ -134,6 +143,7 @@ namespace EmployeeManagementAPI.Controllers
                 Value = true
             });
         }
+        #endregion
 
         static private Dictionary<int, Models.EmployeeModel> employees = new();
     }
