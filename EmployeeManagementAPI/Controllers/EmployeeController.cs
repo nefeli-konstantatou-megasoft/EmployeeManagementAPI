@@ -10,6 +10,10 @@ namespace EmployeeManagementAPI.Controllers
     [ApiController]
     public class EmployeeController : ControllerBase
     {
+        /// <summary>
+        /// [GET] /api/employees: get all employees.
+        /// </summary>
+        /// <returns>Response containing a list of all employees in the dictionary.</returns>
         [HttpGet]
         public ActionResult<ResponseModel<IEnumerable<EmployeeModel>>> GetAll()
         {
@@ -18,7 +22,12 @@ namespace EmployeeManagementAPI.Controllers
                 Value = employees.Values
             });
         }
-
+        
+        /// <summary>
+        /// [GET] /api/employees/{id}: get employee with specified id
+        /// </summary>
+        /// <param name="id">The id of the employee to retrieve</param>
+        /// <returns>Response containing the target employee, or code 404 if the employee doesn't exist</returns>
         [HttpGet("{id}")]
         public ActionResult<ResponseModel<EmployeeModel>> GetById(int id)
         {
@@ -37,6 +46,11 @@ namespace EmployeeManagementAPI.Controllers
                 });
         }
 
+        /// <summary>
+        /// [POST] /api/employees: add employe
+        /// </summary>
+        /// <param name="value">Employee to add</param>
+        /// <returns>Response containing the added employee if successful or code 400 if the request was invalid</returns>
         [HttpPost]
         public ActionResult<ResponseModel<EmployeeModel>> Add([FromBody] EmployeeModel value)
         {
@@ -75,6 +89,11 @@ namespace EmployeeManagementAPI.Controllers
             });
         }
 
+        /// <summary>
+        /// [DELETE]: /api/employees/{id}: remove an employee entry
+        /// </summary>
+        /// <param name="id">The id of the employee to remove</param>
+        /// <returns>Response containing true if successful, or code 404 if employee with specified id was not found</returns>
         [HttpDelete("{id}")]
         public ActionResult<ResponseModel<bool>> Delete(int id)
         {
@@ -93,7 +112,11 @@ namespace EmployeeManagementAPI.Controllers
                 });
         }
 
-
+        /// <summary>
+        /// [PUT]: /api/employees: update the fields of an employee entry
+        /// </summary>
+        /// <param name="value">The updated employee entry, replacing the entry with the same id as the given entry</param>
+        /// <returns>Response containing true if successful, or code 404 if employee with specified id was not found</returns>
         [HttpPut]
         public ActionResult<ResponseModel<bool>> Update([FromBody] EmployeeModel value)
         {
