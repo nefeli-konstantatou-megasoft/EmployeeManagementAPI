@@ -1,0 +1,80 @@
+﻿@page "/"
+@using EmployeeManagementModels
+@inject HttpClient Http
+@inject EmployeeService EmployeeService
+@inject NavigationManager NavigationManager;
+@inject IJSRuntime JS;
+
+
+<PageTitle>Employee Management</PageTitle>
+<h1>Employees</h1>
+
+@if(employees is not null)
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Name</th>
+                <th>Position</th>
+                <th>Department</th>
+                <th>Salary</th>
+                <th>Edit</th>
+                <th>Delete</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var employee in employees)
+        {
+            <tr>
+                <td>@employee.Id</td>
+                <td>@employee.Name</td>
+                <td>@employee.Position</td>
+                <td>@employee.Department</td>
+                <td>@employee.Salary</td>
+                <td><NavLink class="btn btn-primary" @onclick="() => EditEmployee(employee.Id)">Edit</NavLink></td>
+                <td><button class="btn btn-danger" @onclick="() => DeleteEmployee(employee.Id)">Delete</button></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+else
+{
+    <h3>Loading...</h3>
+}
+
+<p>@statusText</p>
+
+@code {
+    public void EditEmployee(int id)
+    {
+        NavigationManager.NavigateTo($"/edit/{id}");
+    }
+
+    public async Task DeleteEmployee(int id)
+    {
+        var value = await JS.InvokeAsync<bool>("confirm", [$"Are you sure sure you want to delete employee with id = {id}?"]);
+        if (!value) return;
+
+        var response = await EmployeeService.Delete(id);
+        if (!response.Success)
+        {
+            statusText = response.Message;
+            return;
+        }
+
+        await UpdateEmployees();
+    }
+
+    protected override async Task OnInitializedAsync() => await UpdateEmployees();
+
+    private async Task UpdateEmployees()
+    {
+        var employeesResponse = await EmployeeService.GetAll();
+        employees = employeesResponse.Value ?? [];
+    }
+
+    IEnumerable<EmployeeModel>? employees = null;
+    private string statusText = string.Empty;
+}

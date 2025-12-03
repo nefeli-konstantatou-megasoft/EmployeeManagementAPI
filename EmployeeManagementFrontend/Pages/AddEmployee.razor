@@ -1,0 +1,51 @@
+﻿@page "/new"
+@using EmployeeManagementModels
+@inject HttpClient Http
+@inject EmployeeService EmployeeService
+
+
+<PageTitle>New Employee</PageTitle>
+<h1>New Employee</h1>
+
+<EditForm Model="Employee" OnSubmit="SubmitForm" FormName="AddEmployee">
+    <div class="form-group">
+        <label>Full Name</label>
+        <InputText class="form-control" @bind-Value="Employee!.Name" />
+    </div>
+    <div class="form-group">
+        <label>Position</label>
+        <InputText class="form-control" @bind-Value="Employee!.Position" />
+    </div>
+    <div class="form-group">
+        <label>Department</label>
+        <InputText class="form-control" @bind-Value="Employee!.Department" />
+    </div>
+    <div class="form-group">
+        <label>Salary</label>
+        <InputNumber class="form-control" @bind-Value="Employee!.Salary" />
+    </div>
+    <button type="submit" class="btn btn-primary">Submit</button>
+</EditForm>
+
+<p>@statusText</p>
+
+@code {
+    async public Task SubmitForm()
+    {
+        if (Employee is null) return;
+        var createdEmployeeResponse = await EmployeeService.Add(Employee);
+        if(!createdEmployeeResponse.Success)
+        {
+            statusText = $"Error: {createdEmployeeResponse.Message}";
+            return;
+        }
+        Employee = createdEmployeeResponse.Value;
+        statusText = $"Successfully created employee '{Employee.Name}' with id = {Employee.Id}";
+    }
+
+    protected override void OnInitialized() => Employee = new EmployeeModel() { Name = string.Empty, Position = string.Empty, Department = string.Empty };
+
+    [SupplyParameterFromForm]
+    private EmployeeModel? Employee { get; set; }
+    private string statusText = string.Empty;
+}

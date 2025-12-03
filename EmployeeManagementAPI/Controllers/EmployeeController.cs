@@ -1,4 +1,4 @@
-﻿using EmployeeManagementAPI.Models;
+﻿using EmployeeManagementModels;
 using Microsoft.AspNetCore.Mvc;
 using System;
 
@@ -8,7 +8,7 @@ namespace EmployeeManagementAPI.Controllers
 {
     [Route("api/employees")]
     [ApiController]
-    public class EmployeeController : ControllerBase
+    public class EmployeeController : BaseController
     {
         #region GetAll
         /// <summary>
@@ -18,7 +18,7 @@ namespace EmployeeManagementAPI.Controllers
         [HttpGet]
         public ActionResult<ResponseModel<IEnumerable<EmployeeModel>>> GetAll()
         {
-            return ResponseModel<IEnumerable<EmployeeModel>>.MakeActionResultSuccess(this, StatusCodes.Status200OK, employees.Values);
+            return MakeActionResultSuccess<IEnumerable<EmployeeModel>>(StatusCodes.Status200OK, employees.Values);
         }
         #endregion
 
@@ -33,9 +33,9 @@ namespace EmployeeManagementAPI.Controllers
         {
             bool success = employees.TryGetValue(id, out var employee);
             if (success)
-                return ResponseModel<EmployeeModel>.MakeActionResultSuccess(this, StatusCodes.Status200OK, employee!);
+                return MakeActionResultSuccess<EmployeeModel>(StatusCodes.Status200OK, employee!);
             else
-                return ResponseModel<EmployeeModel>.MakeActionResultFailure(this, StatusCodes.Status404NotFound, $"Employee with specified id = {id} does not exist");
+                return MakeActionResultFailure<EmployeeModel>(StatusCodes.Status404NotFound, $"Employee with specified id = {id} does not exist");
         }
         #endregion
 
@@ -49,22 +49,18 @@ namespace EmployeeManagementAPI.Controllers
         public ActionResult<ResponseModel<EmployeeModel>> Add([FromBody] EmployeeModel value)
         {
             if (value.Salary <= 0)
-                return ResponseModel<EmployeeModel>.MakeActionResultFailure(this, StatusCodes.Status400BadRequest, "Specified salary has to be positive.");
+                return MakeActionResultFailure<EmployeeModel>(StatusCodes.Status400BadRequest, "Specified salary has to be positive.");
             else if (value.Name.Equals(string.Empty))
-                return ResponseModel<EmployeeModel>.MakeActionResultFailure(this, StatusCodes.Status400BadRequest, "Specified name cannot be empty.");
+                return MakeActionResultFailure<EmployeeModel>(StatusCodes.Status400BadRequest, "Specified name cannot be empty.");
             else if (value.Position.Equals(string.Empty))
-                return ResponseModel<EmployeeModel>.MakeActionResultFailure(this, StatusCodes.Status400BadRequest, "Specified position cannot be empty.");
+                return MakeActionResultFailure<EmployeeModel>(StatusCodes.Status400BadRequest, "Specified position cannot be empty.");
             else if (value.Department.Equals(string.Empty))
-                return ResponseModel<EmployeeModel>.MakeActionResultFailure(this, StatusCodes.Status400BadRequest, "Specified department cannot be empty.");
+                return MakeActionResultFailure<EmployeeModel>(StatusCodes.Status400BadRequest, "Specified department cannot be empty.");
 
             value.Id = employees.Count() + 1;
             employees.Add(value.Id, value);
 
-            return StatusCode(StatusCodes.Status201Created, new ResponseModel<EmployeeModel>()
-            {
-                Success = true,
-                Value = value
-            });
+            return MakeActionResultSuccess(StatusCodes.Status200OK, value);
         }
         #endregion
 
@@ -79,9 +75,9 @@ namespace EmployeeManagementAPI.Controllers
         {
             bool success = employees.Remove(id);
             if (success)
-                return ResponseModel<bool>.MakeActionResultSuccess(this, StatusCodes.Status200OK, true);
+                return MakeActionResultSuccess(StatusCodes.Status200OK, true);
             else
-                return ResponseModel<bool>.MakeActionResultFailure(this, StatusCodes.Status404NotFound, $"Cannot remove employee with invalid id = {id}");
+                return MakeActionResultFailure<bool>(StatusCodes.Status404NotFound, $"Cannot remove employee with invalid id = {id}");
         }
         #endregion
 
@@ -94,14 +90,22 @@ namespace EmployeeManagementAPI.Controllers
         [HttpPut]
         public ActionResult<ResponseModel<bool>> Update([FromBody] EmployeeModel value)
         {
+            if (value.Salary <= 0)
+                return MakeActionResultFailure<bool>(StatusCodes.Status400BadRequest, "Specified salary has to be positive.");
+            else if (value.Name.Equals(string.Empty))
+                return MakeActionResultFailure<bool>(StatusCodes.Status400BadRequest, "Specified name cannot be empty.");
+            else if (value.Position.Equals(string.Empty))
+                return MakeActionResultFailure<bool>(StatusCodes.Status400BadRequest, "Specified position cannot be empty.");
+            else if (value.Department.Equals(string.Empty))
+                return MakeActionResultFailure<bool>(StatusCodes.Status400BadRequest, "Specified department cannot be empty.");
             if (!employees.ContainsKey(value.Id))
-                return ResponseModel<bool>.MakeActionResultFailure(this, StatusCodes.Status404NotFound, $"Cannot update employee with invalid id = {value.Id}");
+                return MakeActionResultFailure<bool>(StatusCodes.Status404NotFound, $"Cannot update employee with invalid id = {value.Id}");
             
             employees[value.Id] = value;
-            return ResponseModel<bool>.MakeActionResultSuccess(this, StatusCodes.Status200OK, true);
+            return MakeActionResultSuccess(StatusCodes.Status200OK, true);
         }
         #endregion
 
-        static private Dictionary<int, Models.EmployeeModel> employees = new();
+        static private Dictionary<int, EmployeeModel> employees = new();
     }
 }

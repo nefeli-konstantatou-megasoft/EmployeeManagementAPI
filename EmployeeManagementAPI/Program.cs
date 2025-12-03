@@ -7,7 +7,23 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+string policyName = "Frontend";
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: policyName,
+        policy =>
+        {
+            policy
+                .AllowAnyOrigin()
+                .AllowAnyMethod()
+                .AllowAnyHeader();
+        });
+});
+
 var app = builder.Build();
+
+app.UseCors(policyName);
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

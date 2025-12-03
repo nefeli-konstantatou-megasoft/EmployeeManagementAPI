@@ -1,4 +1,4 @@
-﻿namespace EmployeeManagementAPI.Models
+﻿namespace EmployeeManagementModels
 {
     public class EmployeeModel
     {
