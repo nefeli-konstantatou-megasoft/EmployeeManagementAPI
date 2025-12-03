@@ -1,8 +1,13 @@
-﻿namespace EmployeeManagementModels
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace EmployeeManagementModels
 {
     public class EmployeeModel
     {
-        public int Id { get; set; }
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public int Id { get; set; } = 0;
         public required string Name { get; set; }
         public required string Position { get; set; }
         public required string Department { get; set; }

@@ -1,11 +1,15 @@
+using EmployeeManagementAPI;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+var connectionString = builder.Configuration.GetValue<string>("ConnectionString");
+
+builder.Services.AddDbContext<EmployeeManagementContext>(opt => opt.UseSqlServer(connectionString), ServiceLifetime.Singleton);
 
 string policyName = "Frontend";
 
@@ -30,6 +34,14 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+    app.UseMigrationsEndPoint();
+}
+
+using(var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var context = services.GetRequiredService<EmployeeManagementContext>();
+    context.Database.EnsureCreated();
 }
 
 app.UseHttpsRedirection();

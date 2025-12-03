@@ -1,6 +1,7 @@
 ﻿using EmployeeManagementModels;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using System.Threading.Tasks;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -10,6 +11,7 @@ namespace EmployeeManagementAPI.Controllers
     [ApiController]
     public class EmployeeController : BaseController
     {
+        public EmployeeController(EmployeeManagementContext context) { this.dbContext = context; }
         #region GetAll
         /// <summary>
         /// [GET] /api/employees: get all employees.
@@ -18,7 +20,7 @@ namespace EmployeeManagementAPI.Controllers
         [HttpGet]
         public ActionResult<ResponseModel<IEnumerable<EmployeeModel>>> GetAll()
         {
-            return MakeActionResultSuccess<IEnumerable<EmployeeModel>>(StatusCodes.Status200OK, employees.Values);
+            return MakeActionResultSuccess<IEnumerable<EmployeeModel>>(StatusCodes.Status200OK, dbContext.Employees.ToList());
         }
         #endregion
 
@@ -31,9 +33,9 @@ namespace EmployeeManagementAPI.Controllers
         [HttpGet("{id}")]
         public ActionResult<ResponseModel<EmployeeModel>> GetById(int id)
         {
-            bool success = employees.TryGetValue(id, out var employee);
-            if (success)
-                return MakeActionResultSuccess<EmployeeModel>(StatusCodes.Status200OK, employee!);
+            var employee = dbContext.Employees.FirstOrDefault(employee => employee.Id == id);
+            if (employee is not null)
+                return MakeActionResultSuccess<EmployeeModel>(StatusCodes.Status200OK, employee);
             else
                 return MakeActionResultFailure<EmployeeModel>(StatusCodes.Status404NotFound, $"Employee with specified id = {id} does not exist");
         }
@@ -46,7 +48,7 @@ namespace EmployeeManagementAPI.Controllers
         /// <param name="value">Employee to add</param>
         /// <returns>Response containing the added employee if successful or code 400 if the request was invalid</returns>
         [HttpPost]
-        public ActionResult<ResponseModel<EmployeeModel>> Add([FromBody] EmployeeModel value)
+        public async Task<ActionResult<ResponseModel<EmployeeModel>>> Add([FromBody] EmployeeModel value)
         {
             if (value.Salary <= 0)
                 return MakeActionResultFailure<EmployeeModel>(StatusCodes.Status400BadRequest, "Specified salary has to be positive.");
@@ -57,10 +59,13 @@ namespace EmployeeManagementAPI.Controllers
             else if (value.Department.Equals(string.Empty))
                 return MakeActionResultFailure<EmployeeModel>(StatusCodes.Status400BadRequest, "Specified department cannot be empty.");
 
-            value.Id = employees.Count() + 1;
-            employees.Add(value.Id, value);
+            value.Id = 0;
 
-            return MakeActionResultSuccess(StatusCodes.Status200OK, value);
+            dbContext.Employees.Add(value);
+            var result = await dbContext.SaveChangesAsync();
+            
+            return result >= 0? MakeActionResultSuccess(StatusCodes.Status200OK, value):
+                MakeActionResultFailure<EmployeeModel>(StatusCodes.Status400BadRequest, "Could not add employee.");
         }
         #endregion
 
@@ -71,10 +76,16 @@ namespace EmployeeManagementAPI.Controllers
         /// <param name="id">The id of the employee to remove</param>
         /// <returns>Response containing true if successful, or code 404 if employee with specified id was not found</returns>
         [HttpDelete("{id}")]
-        public ActionResult<ResponseModel<bool>> Delete(int id)
+        public async Task<ActionResult<ResponseModel<bool>>> Delete(int id)
         {
-            bool success = employees.Remove(id);
-            if (success)
+            var employee = dbContext.Employees.FirstOrDefault(employee => employee.Id == id);
+            if(employee is null)
+                return MakeActionResultFailure<bool>(StatusCodes.Status404NotFound, $"Cannot remove employee with invalid id = {id}");
+
+            dbContext.Employees.Remove(employee);
+            var result = await dbContext.SaveChangesAsync();
+
+            if (result >= 0)
                 return MakeActionResultSuccess(StatusCodes.Status200OK, true);
             else
                 return MakeActionResultFailure<bool>(StatusCodes.Status404NotFound, $"Cannot remove employee with invalid id = {id}");
@@ -88,7 +99,7 @@ namespace EmployeeManagementAPI.Controllers
         /// <param name="value">The updated employee entry, replacing the entry with the same id as the given entry</param>
         /// <returns>Response containing true if successful, or code 404 if employee with specified id was not found</returns>
         [HttpPut]
-        public ActionResult<ResponseModel<bool>> Update([FromBody] EmployeeModel value)
+        public async Task<ActionResult<ResponseModel<bool>>> Update([FromBody] EmployeeModel value)
         {
             if (value.Salary <= 0)
                 return MakeActionResultFailure<bool>(StatusCodes.Status400BadRequest, "Specified salary has to be positive.");
@@ -98,14 +109,18 @@ namespace EmployeeManagementAPI.Controllers
                 return MakeActionResultFailure<bool>(StatusCodes.Status400BadRequest, "Specified position cannot be empty.");
             else if (value.Department.Equals(string.Empty))
                 return MakeActionResultFailure<bool>(StatusCodes.Status400BadRequest, "Specified department cannot be empty.");
-            if (!employees.ContainsKey(value.Id))
+            
+            dbContext.Employees.Update(value);
+            var result = await dbContext.SaveChangesAsync();
+            
+            if (result >= 0)
+                return MakeActionResultSuccess(StatusCodes.Status200OK, true);
+            else
                 return MakeActionResultFailure<bool>(StatusCodes.Status404NotFound, $"Cannot update employee with invalid id = {value.Id}");
             
-            employees[value.Id] = value;
-            return MakeActionResultSuccess(StatusCodes.Status200OK, true);
         }
         #endregion
 
-        static private Dictionary<int, EmployeeModel> employees = new();
+        private readonly EmployeeManagementContext dbContext;
     }
 }
