@@ -364,3 +364,4 @@ FodyWeavers.xsd
 
 # Development app settings
 /EmployeeManagementAPI/appsettings.Development.json
+/EmployeeManagementAPI/Migrations
