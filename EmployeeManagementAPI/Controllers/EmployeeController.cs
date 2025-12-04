@@ -1,6 +1,8 @@
 ﻿using EmployeeManagementModels;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 using System;
+using System.Collections.Immutable;
 using System.Threading.Tasks;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
@@ -14,13 +16,63 @@ namespace EmployeeManagementAPI.Controllers
         public EmployeeController(EmployeeManagementContext context) { this.dbContext = context; }
         #region GetAll
         /// <summary>
-        /// [GET] /api/employees: get all employees.
+        /// [GET] /api/employees: get all employees, optionally filtering them by position or department,
+        /// and optionally sorting them by name or salary (ascending/descending).Uses paging.
         /// </summary>
         /// <returns>Response containing a list of all employees in the dictionary.</returns>
         [HttpGet]
-        public ActionResult<ResponseModel<IEnumerable<EmployeeModel>>> GetAll()
+        public ActionResult<ResponseModel<IEnumerable<EmployeeModel>>> GetAll(Filter filter, Sorting sorting, Paging paging)
         {
-            return MakeActionResultSuccess<IEnumerable<EmployeeModel>>(StatusCodes.Status200OK, dbContext.Employees.ToList());
+            var employees = dbContext.Employees.ToList();
+            filter.FilterField ??= string.Empty;
+            filter.FilterBody ??= string.Empty;
+            int ascendingSign = sorting.SortOrder == SortingOrder.Ascending? 1 : -1;
+
+            switch(sorting.SortField)
+            {
+            case "Salary":
+                employees.Sort((first, second) => ascendingSign * (first.Salary > second.Salary ? -1 : 1));
+                break;
+            case "Name":
+                employees.Sort((first, second) => ascendingSign * string.Compare(first.Name, second.Name));
+                break;
+            default:
+                if(!sorting.SortField.IsNullOrEmpty())
+                    return MakeActionResultFailure<IEnumerable<EmployeeModel>>(StatusCodes.Status400BadRequest, "Query parameter 'sortBy' has to be either 'Salary' or 'Name' if specified");
+                break;
+            }
+
+            if (filter.FilterField.IsNullOrEmpty() != filter.FilterBody.IsNullOrEmpty())
+                return MakeActionResultFailure<IEnumerable<EmployeeModel>>(StatusCodes.Status400BadRequest, "Both 'filter' and 'filterBy' query parameters have to be specified, or neither of them do");
+            else switch (filter.FilterField)
+            {
+            case "Department":
+                {
+                    var filteredEmployees = employees.Where(employee => employee.Department.Trim().ToLower().Equals(filter.FilterBody.Trim().ToLower()));
+                    return MakeActionResultSuccess<IEnumerable<EmployeeModel>>(StatusCodes.Status200OK, filteredEmployees);
+                }
+            case "Position":
+                {
+                    var filteredEmployees = employees.Where(employee => employee.Position.Trim().ToLower().Equals(filter.FilterBody.Trim().ToLower()));
+                    return MakeActionResultSuccess<IEnumerable<EmployeeModel>>(StatusCodes.Status200OK, filteredEmployees);
+                }
+            default:
+                if (!filter.FilterField.IsNullOrEmpty())
+                    return MakeActionResultFailure<IEnumerable<EmployeeModel>>(StatusCodes.Status400BadRequest, "Query parameter 'filterBy' has to be either 'Department' or 'Position' if specified");
+                break;
+            }
+
+            int startIndex = paging.PageIndex * paging.PageSize;
+            int count = Math.Min(paging.PageSize, employees.Count - startIndex);
+            try
+            {
+                employees = employees.GetRange(startIndex, count);
+                return MakeActionResultSuccess<IEnumerable<EmployeeModel>>(StatusCodes.Status200OK, employees);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                return MakeActionResultSuccess<IEnumerable<EmployeeModel>>(StatusCodes.Status200OK, []);
+            }
         }
         #endregion
 
