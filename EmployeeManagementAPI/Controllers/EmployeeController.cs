@@ -1,5 +1,6 @@
 ﻿using EmployeeManagementModels;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Immutable;
@@ -19,7 +20,7 @@ namespace EmployeeManagementAPI.Controllers
         /// [GET] /api/employees: get all employees, optionally filtering them by position or department,
         /// and optionally sorting them by name or salary (ascending/descending).Uses paging.
         /// </summary>
-        /// <returns>Response containing a list of all employees in the dictionary.</returns>
+        /// <returns>Response containing a list of all employees in the database.</returns>
         [HttpGet]
         public ActionResult<ResponseModel<IEnumerable<EmployeeModel>>> GetAll(Filter filter, Sorting sorting, Paging paging)
         {
@@ -48,7 +49,7 @@ namespace EmployeeManagementAPI.Controllers
             {
             case "Department":
                 {
-                    var filteredEmployees = employees.Where(employee => employee.Department.Trim().ToLower().Equals(filter.FilterBody.Trim().ToLower()));
+                    var filteredEmployees = employees.Where(employee => employee.Department.Name.Trim().ToLower().Equals(filter.FilterBody.Trim().ToLower()));
                     return MakeActionResultSuccess<IEnumerable<EmployeeModel>>(StatusCodes.Status200OK, filteredEmployees);
                 }
             case "Position":
@@ -83,9 +84,9 @@ namespace EmployeeManagementAPI.Controllers
         /// <param name="id">The id of the employee to retrieve</param>
         /// <returns>Response containing the target employee, or code 404 if the employee doesn't exist</returns>
         [HttpGet("{id}")]
-        public ActionResult<ResponseModel<EmployeeModel>> GetById(int id)
+        public async Task<ActionResult<ResponseModel<EmployeeModel>>> GetById(int id)
         {
-            var employee = dbContext.Employees.FirstOrDefault(employee => employee.Id == id);
+            var employee = await dbContext.Employees.FirstOrDefaultAsync(employee => employee.Id == id);
             if (employee is not null)
                 return MakeActionResultSuccess<EmployeeModel>(StatusCodes.Status200OK, employee);
             else
@@ -102,16 +103,19 @@ namespace EmployeeManagementAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<ResponseModel<EmployeeModel>>> Add([FromBody] EmployeeModel value)
         {
+            value.Id = 0;
+            value.Department = null;
             if (value.Salary <= 0)
                 return MakeActionResultFailure<EmployeeModel>(StatusCodes.Status400BadRequest, "Specified salary has to be positive.");
             else if (value.Name.Equals(string.Empty))
                 return MakeActionResultFailure<EmployeeModel>(StatusCodes.Status400BadRequest, "Specified name cannot be empty.");
             else if (value.Position.Equals(string.Empty))
                 return MakeActionResultFailure<EmployeeModel>(StatusCodes.Status400BadRequest, "Specified position cannot be empty.");
-            else if (value.Department.Equals(string.Empty))
-                return MakeActionResultFailure<EmployeeModel>(StatusCodes.Status400BadRequest, "Specified department cannot be empty.");
 
-            value.Id = 0;
+            var department = await dbContext.Departments.FirstOrDefaultAsync(department => department.Id == value.DepartmentId);
+            
+            if(department is null)
+                return MakeActionResultFailure<EmployeeModel>(StatusCodes.Status400BadRequest, $"Specified department id = {value.DepartmentId} is invalid for add.");
 
             dbContext.Employees.Add(value);
             var result = await dbContext.SaveChangesAsync();
@@ -159,17 +163,21 @@ namespace EmployeeManagementAPI.Controllers
                 return MakeActionResultFailure<bool>(StatusCodes.Status400BadRequest, "Specified name cannot be empty.");
             else if (value.Position.Equals(string.Empty))
                 return MakeActionResultFailure<bool>(StatusCodes.Status400BadRequest, "Specified position cannot be empty.");
-            else if (value.Department.Equals(string.Empty))
-                return MakeActionResultFailure<bool>(StatusCodes.Status400BadRequest, "Specified department cannot be empty.");
 
-            var employee = dbContext.Employees.FirstOrDefault(employee => employee.Equals(value));
+            var department = await dbContext.Departments.FirstOrDefaultAsync(department => department.Id == value.DepartmentId);
+
+            if (department is null)
+                return MakeActionResultFailure<bool>(StatusCodes.Status400BadRequest, $"Specified department id = {value.DepartmentId} is invalid for update.");
+
+            var employee = await dbContext.Employees.FirstOrDefaultAsync(employee => employee.Equals(value));
 
             if (employee is null)
                 return MakeActionResultFailure<bool>(StatusCodes.Status404NotFound, $"Cannot update employee with invalid id = {value.Id}");
 
+            employee.DepartmentId = value.DepartmentId;
             employee.Name = value.Name;
             employee.Position = value.Position;
-            employee.Department = value.Department;
+            employee.Department = department;
             employee.Salary = value.Salary;
             var result = await dbContext.SaveChangesAsync();
             
