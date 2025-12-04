@@ -18,7 +18,7 @@ namespace EmployeeManagementAPI.Controllers
         [HttpGet]
         public ActionResult<ResponseModel<IEnumerable<DepartmentModel>>> GetAll()
         {
-            return MakeActionResultSuccess<IEnumerable<DepartmentModel>>(StatusCodes.Status200OK, dbContext.Departments);
+            return MakeResponseSuccess<IEnumerable<DepartmentModel>>(StatusCodes.Status200OK, dbContext.Departments);
         }
         #endregion
 
@@ -33,9 +33,9 @@ namespace EmployeeManagementAPI.Controllers
         {
             var result = dbContext.Departments.FirstOrDefault(department => department.Id == id);
             if (result == null)
-                return MakeActionResultFailure<DepartmentModel>(StatusCodes.Status404NotFound, $"Department with invalid id = {id} was not found.");
+                return MakeResponseFailure<DepartmentModel>(StatusCodes.Status404NotFound, $"Department with invalid id = {id} was not found.");
             else
-                return MakeActionResultSuccess<DepartmentModel>(StatusCodes.Status200OK, result!);
+                return MakeResponseSuccess<DepartmentModel>(StatusCodes.Status200OK, result!);
         }
         #endregion
 
@@ -51,9 +51,9 @@ namespace EmployeeManagementAPI.Controllers
             dbContext.Departments.Add(department);
             var result = await dbContext.SaveChangesAsync();
             if (result >= 0)
-                return MakeActionResultSuccess<DepartmentModel>(StatusCodes.Status201Created, department);
+                return MakeResponseSuccess<DepartmentModel>(StatusCodes.Status201Created, department);
             else
-                return MakeActionResultFailure<DepartmentModel>(StatusCodes.Status404NotFound, $"Department with id = {department.Id} already exists.");
+                return MakeResponseFailure<DepartmentModel>(StatusCodes.Status404NotFound, $"Department with id = {department.Id} already exists.");
         }
         #endregion
 
@@ -68,15 +68,15 @@ namespace EmployeeManagementAPI.Controllers
         {
             var dbDepartment = await dbContext.Departments.FirstOrDefaultAsync(_department => _department.Id == department.Id);
             if (dbDepartment is null)
-                return MakeActionResultFailure<bool>(StatusCodes.Status404NotFound, $"Cannot update department with invalid id = {department.Id}");
+                return MakeResponseFailure<bool>(StatusCodes.Status404NotFound, $"Cannot update department with invalid id = {department.Id}");
 
             dbDepartment.Name = department.Name;
             var result = await dbContext.SaveChangesAsync();
 
             if (result >= 0)
-                return MakeActionResultSuccess<bool>(StatusCodes.Status201Created, true);
+                return MakeResponseSuccess<bool>(StatusCodes.Status201Created, true);
             else
-                return MakeActionResultFailure<bool>(StatusCodes.Status400BadRequest, $"Could not update department with id = {department.Id}.");
+                return MakeResponseFailure<bool>(StatusCodes.Status400BadRequest, $"Could not update department with id = {department.Id}.");
         }
         #endregion
 
@@ -91,15 +91,15 @@ namespace EmployeeManagementAPI.Controllers
         {
             var dbDepartment = await dbContext.Departments.FirstOrDefaultAsync(department => department.Id == id);
             if (dbDepartment is null)
-                return MakeActionResultFailure<bool>(StatusCodes.Status404NotFound, $"Department with id = {id} does not exist.");
+                return MakeResponseFailure<bool>(StatusCodes.Status404NotFound, $"Department with id = {id} does not exist.");
 
             dbContext.Departments.Remove(dbDepartment);
             var result = dbContext.SaveChanges();
 
             if (result >= 0)
-                return MakeActionResultSuccess<bool>(StatusCodes.Status200OK, true);
+                return MakeResponseSuccess<bool>(StatusCodes.Status200OK, true);
             else
-                return MakeActionResultFailure<bool>(StatusCodes.Status400BadRequest, $"Could not delete department with id = {id}");
+                return MakeResponseFailure<bool>(StatusCodes.Status400BadRequest, $"Could not delete department with id = {id}");
         }
         #endregion
 

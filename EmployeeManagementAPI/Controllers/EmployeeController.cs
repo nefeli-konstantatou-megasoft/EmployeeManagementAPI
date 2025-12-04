@@ -39,27 +39,27 @@ namespace EmployeeManagementAPI.Controllers
                 break;
             default:
                 if(!sorting.SortField.IsNullOrEmpty())
-                    return MakeActionResultFailure<IEnumerable<EmployeeModel>>(StatusCodes.Status400BadRequest, "Query parameter 'sortBy' has to be either 'Salary' or 'Name' if specified");
+                    return MakeResponseFailure<IEnumerable<EmployeeModel>>(StatusCodes.Status400BadRequest, "Query parameter 'sortBy' has to be either 'Salary' or 'Name' if specified");
                 break;
             }
 
             if (filter.FilterField.IsNullOrEmpty() != filter.FilterBody.IsNullOrEmpty())
-                return MakeActionResultFailure<IEnumerable<EmployeeModel>>(StatusCodes.Status400BadRequest, "Both 'filter' and 'filterBy' query parameters have to be specified, or neither of them do");
+                return MakeResponseFailure<IEnumerable<EmployeeModel>>(StatusCodes.Status400BadRequest, "Both 'filter' and 'filterBy' query parameters have to be specified, or neither of them do");
             else switch (filter.FilterField)
             {
             case "Department":
                 {
                     var filteredEmployees = employees.Where(employee => employee.Department.Name.Trim().ToLower().Equals(filter.FilterBody.Trim().ToLower()));
-                    return MakeActionResultSuccess<IEnumerable<EmployeeModel>>(StatusCodes.Status200OK, filteredEmployees);
+                    return MakeResponseSuccess<IEnumerable<EmployeeModel>>(StatusCodes.Status200OK, filteredEmployees);
                 }
             case "Position":
                 {
                     var filteredEmployees = employees.Where(employee => employee.Position.Trim().ToLower().Equals(filter.FilterBody.Trim().ToLower()));
-                    return MakeActionResultSuccess<IEnumerable<EmployeeModel>>(StatusCodes.Status200OK, filteredEmployees);
+                    return MakeResponseSuccess<IEnumerable<EmployeeModel>>(StatusCodes.Status200OK, filteredEmployees);
                 }
             default:
                 if (!filter.FilterField.IsNullOrEmpty())
-                    return MakeActionResultFailure<IEnumerable<EmployeeModel>>(StatusCodes.Status400BadRequest, "Query parameter 'filterBy' has to be either 'Department' or 'Position' if specified");
+                    return MakeResponseFailure<IEnumerable<EmployeeModel>>(StatusCodes.Status400BadRequest, "Query parameter 'filterBy' has to be either 'Department' or 'Position' if specified");
                 break;
             }
 
@@ -68,11 +68,11 @@ namespace EmployeeManagementAPI.Controllers
             try
             {
                 employees = employees.GetRange(startIndex, count);
-                return MakeActionResultSuccess<IEnumerable<EmployeeModel>>(StatusCodes.Status200OK, employees);
+                return MakeResponseSuccess<IEnumerable<EmployeeModel>>(StatusCodes.Status200OK, employees);
             }
             catch (ArgumentOutOfRangeException)
             {
-                return MakeActionResultSuccess<IEnumerable<EmployeeModel>>(StatusCodes.Status200OK, []);
+                return MakeResponseSuccess<IEnumerable<EmployeeModel>>(StatusCodes.Status200OK, []);
             }
         }
         #endregion
@@ -88,9 +88,9 @@ namespace EmployeeManagementAPI.Controllers
         {
             var employee = await dbContext.Employees.FirstOrDefaultAsync(employee => employee.Id == id);
             if (employee is not null)
-                return MakeActionResultSuccess<EmployeeModel>(StatusCodes.Status200OK, employee);
+                return MakeResponseSuccess<EmployeeModel>(StatusCodes.Status200OK, employee);
             else
-                return MakeActionResultFailure<EmployeeModel>(StatusCodes.Status404NotFound, $"Employee with specified id = {id} does not exist");
+                return MakeResponseFailure<EmployeeModel>(StatusCodes.Status404NotFound, $"Employee with specified id = {id} does not exist");
         }
         #endregion
 
@@ -106,22 +106,22 @@ namespace EmployeeManagementAPI.Controllers
             value.Id = 0;
             value.Department = null;
             if (value.Salary <= 0)
-                return MakeActionResultFailure<EmployeeModel>(StatusCodes.Status400BadRequest, "Specified salary has to be positive.");
+                return MakeResponseFailure<EmployeeModel>(StatusCodes.Status400BadRequest, "Specified salary has to be positive.");
             else if (value.Name.Equals(string.Empty))
-                return MakeActionResultFailure<EmployeeModel>(StatusCodes.Status400BadRequest, "Specified name cannot be empty.");
+                return MakeResponseFailure<EmployeeModel>(StatusCodes.Status400BadRequest, "Specified name cannot be empty.");
             else if (value.Position.Equals(string.Empty))
-                return MakeActionResultFailure<EmployeeModel>(StatusCodes.Status400BadRequest, "Specified position cannot be empty.");
+                return MakeResponseFailure<EmployeeModel>(StatusCodes.Status400BadRequest, "Specified position cannot be empty.");
 
             var department = await dbContext.Departments.FirstOrDefaultAsync(department => department.Id == value.DepartmentId);
             
             if(department is null)
-                return MakeActionResultFailure<EmployeeModel>(StatusCodes.Status400BadRequest, $"Specified department id = {value.DepartmentId} is invalid for add.");
+                return MakeResponseFailure<EmployeeModel>(StatusCodes.Status400BadRequest, $"Specified department id = {value.DepartmentId} is invalid for add.");
 
             dbContext.Employees.Add(value);
             var result = await dbContext.SaveChangesAsync();
             
-            return result >= 0? MakeActionResultSuccess(StatusCodes.Status200OK, value):
-                MakeActionResultFailure<EmployeeModel>(StatusCodes.Status400BadRequest, "Could not add employee.");
+            return result >= 0? MakeResponseSuccess(StatusCodes.Status200OK, value):
+                MakeResponseFailure<EmployeeModel>(StatusCodes.Status400BadRequest, "Could not add employee.");
         }
         #endregion
 
@@ -136,15 +136,15 @@ namespace EmployeeManagementAPI.Controllers
         {
             var employee = dbContext.Employees.FirstOrDefault(employee => employee.Id == id);
             if(employee is null)
-                return MakeActionResultFailure<bool>(StatusCodes.Status404NotFound, $"Cannot remove employee with invalid id = {id}");
+                return MakeResponseFailure<bool>(StatusCodes.Status404NotFound, $"Cannot remove employee with invalid id = {id}");
 
             dbContext.Employees.Remove(employee);
             var result = await dbContext.SaveChangesAsync();
 
             if (result >= 0)
-                return MakeActionResultSuccess(StatusCodes.Status200OK, true);
+                return MakeResponseSuccess(StatusCodes.Status200OK, true);
             else
-                return MakeActionResultFailure<bool>(StatusCodes.Status404NotFound, $"Cannot remove employee with invalid id = {id}");
+                return MakeResponseFailure<bool>(StatusCodes.Status404NotFound, $"Cannot remove employee with invalid id = {id}");
         }
         #endregion
 
@@ -158,21 +158,21 @@ namespace EmployeeManagementAPI.Controllers
         public async Task<ActionResult<ResponseModel<bool>>> Update([FromBody] EmployeeModel value)
         {
             if (value.Salary <= 0)
-                return MakeActionResultFailure<bool>(StatusCodes.Status400BadRequest, "Specified salary has to be positive.");
+                return MakeResponseFailure<bool>(StatusCodes.Status400BadRequest, "Specified salary has to be positive.");
             else if (value.Name.Equals(string.Empty))
-                return MakeActionResultFailure<bool>(StatusCodes.Status400BadRequest, "Specified name cannot be empty.");
+                return MakeResponseFailure<bool>(StatusCodes.Status400BadRequest, "Specified name cannot be empty.");
             else if (value.Position.Equals(string.Empty))
-                return MakeActionResultFailure<bool>(StatusCodes.Status400BadRequest, "Specified position cannot be empty.");
+                return MakeResponseFailure<bool>(StatusCodes.Status400BadRequest, "Specified position cannot be empty.");
 
             var department = await dbContext.Departments.FirstOrDefaultAsync(department => department.Id == value.DepartmentId);
 
             if (department is null)
-                return MakeActionResultFailure<bool>(StatusCodes.Status400BadRequest, $"Specified department id = {value.DepartmentId} is invalid for update.");
+                return MakeResponseFailure<bool>(StatusCodes.Status400BadRequest, $"Specified department id = {value.DepartmentId} is invalid for update.");
 
             var employee = await dbContext.Employees.FirstOrDefaultAsync(employee => employee.Equals(value));
 
             if (employee is null)
-                return MakeActionResultFailure<bool>(StatusCodes.Status404NotFound, $"Cannot update employee with invalid id = {value.Id}");
+                return MakeResponseFailure<bool>(StatusCodes.Status404NotFound, $"Cannot update employee with invalid id = {value.Id}");
 
             employee.DepartmentId = value.DepartmentId;
             employee.Name = value.Name;
@@ -182,9 +182,9 @@ namespace EmployeeManagementAPI.Controllers
             var result = await dbContext.SaveChangesAsync();
             
             if (result >= 0)
-                return MakeActionResultSuccess(StatusCodes.Status200OK, true);
+                return MakeResponseSuccess(StatusCodes.Status200OK, true);
             else
-                return MakeActionResultFailure<bool>(StatusCodes.Status404NotFound, $"Updating employee with id = {value.Id} failed");
+                return MakeResponseFailure<bool>(StatusCodes.Status404NotFound, $"Updating employee with id = {value.Id} failed");
             
         }
         #endregion
