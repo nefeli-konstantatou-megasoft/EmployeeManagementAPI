@@ -109,14 +109,22 @@ namespace EmployeeManagementAPI.Controllers
                 return MakeActionResultFailure<bool>(StatusCodes.Status400BadRequest, "Specified position cannot be empty.");
             else if (value.Department.Equals(string.Empty))
                 return MakeActionResultFailure<bool>(StatusCodes.Status400BadRequest, "Specified department cannot be empty.");
-            
-            dbContext.Employees.Update(value);
+
+            var employee = dbContext.Employees.FirstOrDefault(employee => employee.Equals(value));
+
+            if (employee is null)
+                return MakeActionResultFailure<bool>(StatusCodes.Status404NotFound, $"Cannot update employee with invalid id = {value.Id}");
+
+            employee.Name = value.Name;
+            employee.Position = value.Position;
+            employee.Department = value.Department;
+            employee.Salary = value.Salary;
             var result = await dbContext.SaveChangesAsync();
             
             if (result >= 0)
                 return MakeActionResultSuccess(StatusCodes.Status200OK, true);
             else
-                return MakeActionResultFailure<bool>(StatusCodes.Status404NotFound, $"Cannot update employee with invalid id = {value.Id}");
+                return MakeActionResultFailure<bool>(StatusCodes.Status404NotFound, $"Updating employee with id = {value.Id} failed");
             
         }
         #endregion
