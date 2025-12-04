@@ -74,7 +74,7 @@ namespace EmployeeManagementAPI.Controllers
             var result = await dbContext.SaveChangesAsync();
 
             if (result >= 0)
-                return MakeResponseSuccess<bool>(StatusCodes.Status201Created, true);
+                return MakeResponseSuccess<bool>(StatusCodes.Status200OK, true);
             else
                 return MakeResponseFailure<bool>(StatusCodes.Status400BadRequest, $"Could not update department with id = {department.Id}.");
         }
