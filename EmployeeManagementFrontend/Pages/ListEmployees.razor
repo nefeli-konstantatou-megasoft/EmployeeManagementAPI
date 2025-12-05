@@ -10,7 +10,7 @@
 <PageTitle>Employee Management</PageTitle>
 <h1>Employees</h1>
 
-<DxLoadingPanel @bind-Visible="LoadingVisible" IsContentBlocked="true" ApplyBackgroundShading="true" IndicatorAreaVisible="false" Text="Fetching departments...">
+<DxLoadingPanel @bind-Visible="LoadingVisible" IsContentBlocked="true" ApplyBackgroundShading="true" IndicatorAreaVisible="false" Text="Fetching employees...">
     <DxGrid
         Data="@Employees"
         KeyFieldName="Id"
@@ -122,13 +122,17 @@
         await UpdateModels();
     }
 
-    protected override async Task OnInitializedAsync() => await UpdateModels();
+    protected override async Task OnInitializedAsync()
+    {
+        var departmentsResponse = await DepartmentService.GetAll();
+        Departments = departmentsResponse.Value;
+        await UpdateModels();
+    }
 
     private async Task UpdateModels()
     {
         LoadingVisible = true;
         StateHasChanged();
-
 
         Filter.FilterField = InvalidFields.Contains(Filter.FilterField) ? null : Filter.FilterField;
         Sorting.SortField = InvalidFields.Contains(Sorting.SortField) ? null : Sorting.SortField;
@@ -136,8 +140,7 @@
 
         var employeesResponse = await EmployeeService.GetAll(Sorting, Filter, Paging);
         Employees = employeesResponse.Value ?? [];
-        var departmentsResponse = await DepartmentService.GetAll();
-        Departments = departmentsResponse.Value;
+       
         LoadingVisible = false;
     }
 
