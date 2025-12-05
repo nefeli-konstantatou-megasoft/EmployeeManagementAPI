@@ -32,7 +32,7 @@ namespace EmployeeManagementAPI.Controllers
             switch(sorting.SortField)
             {
             case "Salary":
-                employees.Sort((first, second) => ascendingSign * (first.Salary > second.Salary ? -1 : 1));
+                employees.Sort((first, second) => ascendingSign * (first.Salary > second.Salary ? 1 : -1));
                 break;
             case "Name":
                 employees.Sort((first, second) => ascendingSign * string.Compare(first.Name, second.Name));
