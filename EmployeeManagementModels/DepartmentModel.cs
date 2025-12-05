@@ -8,6 +8,8 @@ namespace EmployeeManagementModels
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
+        
+        [RegularExpression("^.{2,50}$")]
         public required string Name { get; set; }
     }
 }

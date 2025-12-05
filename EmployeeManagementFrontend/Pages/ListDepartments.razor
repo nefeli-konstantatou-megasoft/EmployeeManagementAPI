@@ -1,0 +1,85 @@
+﻿@page "/departments"
+@using EmployeeManagementModels
+@inject HttpClient Http
+@inject DepartmentService DepartmentService
+@inject NavigationManager NavigationManager;
+@inject IJSRuntime JS;
+
+
+<PageTitle>Employee Management</PageTitle>
+<h1>Departments</h1>
+
+<DxLoadingPanel @bind-Visible="LoadingVisible" IsContentBlocked="true" ApplyBackgroundShading="true" IndicatorAreaVisible="false" Text="Fetching departments...">
+    <DxGrid Data="@Departments"
+            KeyFieldName="Id"
+            PageSize="10"
+            ColumnResizeMode="GridColumnResizeMode.NextColumn"
+            TextWrapEnabled="false"
+            EditModelSaving="EditDepartment"
+            DataItemDeleting="DeleteDepartment"
+            EditMode="GridEditMode.EditRow"
+            CustomizeDataRowEditor="CustomizeGridEditor"
+            HighlightRowOnHover="true">
+        <Columns>
+            <DxGridDataColumn FieldName="Name" Width="90%" />
+            <DxGridCommandColumn Width="10%" />
+        </Columns>
+    </DxGrid>
+</DxLoadingPanel>
+
+<p>@statusText</p>
+
+@code {
+    public async Task EditDepartment(GridEditModelSavingEventArgs args)
+    {
+        var employee = (DepartmentModel)args.EditModel;
+        if (args.IsNew)
+        {
+            var response = await DepartmentService.Add(employee);
+            statusText = response.Message ?? string.Empty;
+        }
+        else
+        {
+            var response = await DepartmentService.Update(employee);
+            statusText = response.Message ?? string.Empty;
+        }
+
+        await UpdateModels();
+    }
+
+    public void CustomizeGridEditor(GridCustomizeDataRowEditorEventArgs args)
+    {
+        var settings = (IEditSettings)args.EditSettings;
+        settings.ShowValidationSuccessState = true;
+        settings.ValidationEnabled = true;
+    }
+
+    public async Task DeleteDepartment(GridDataItemDeletingEventArgs args)
+    {
+        var id = ((DepartmentModel)args.DataItem).Id;
+
+        var response = await DepartmentService.Delete(id);
+        if (!response.Success)
+        {
+            statusText = response.Message;
+            return;
+        }
+
+        await UpdateModels();
+    }
+
+    protected override async Task OnInitializedAsync() => await UpdateModels();
+
+    private async Task UpdateModels()
+    {
+        LoadingVisible = true;
+        StateHasChanged();
+        var departmentsResponse = await DepartmentService.GetAll();
+        Departments = departmentsResponse.Value;
+        LoadingVisible = false;
+    }
+
+    public IEnumerable<DepartmentModel>? Departments { get; set; } = null;
+    private string statusText = string.Empty;
+    public bool LoadingVisible { get; set; } = true;
+}

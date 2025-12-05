@@ -7,10 +7,13 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
+
 var httpClient = new
     HttpClient { BaseAddress = new Uri("https://localhost:7219") };
 
 builder.Services.AddScoped(sp => httpClient);
 builder.Services.AddScoped<EmployeeService>();
+builder.Services.AddScoped<DepartmentService>();
+builder.Services.AddDevExpressBlazor();
 
 await builder.Build().RunAsync();

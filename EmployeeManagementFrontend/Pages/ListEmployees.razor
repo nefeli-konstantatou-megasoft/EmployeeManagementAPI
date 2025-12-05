@@ -2,6 +2,7 @@
 @using EmployeeManagementModels
 @inject HttpClient Http
 @inject EmployeeService EmployeeService
+@inject DepartmentService DepartmentService
 @inject NavigationManager NavigationManager;
 @inject IJSRuntime JS;
 
@@ -9,53 +10,64 @@
 <PageTitle>Employee Management</PageTitle>
 <h1>Employees</h1>
 
-@if(employees is not null)
-{
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Id</th>
-                <th>Name</th>
-                <th>Position</th>
-                <th>Department</th>
-                <th>Salary</th>
-                <th>Edit</th>
-                <th>Delete</th>
-            </tr>
-        </thead>
-        <tbody>
-        @foreach (var employee in employees)
-        {
-            <tr>
-                <td>@employee.Id</td>
-                <td>@employee.Name</td>
-                <td>@employee.Position</td>
-                <td>@employee.Department</td>
-                <td>@employee.Salary</td>
-                <td><NavLink class="btn btn-primary" @onclick="() => EditEmployee(employee.Id)">Edit</NavLink></td>
-                <td><button class="btn btn-danger" @onclick="() => DeleteEmployee(employee.Id)">Delete</button></td>
-            </tr>
-        }
-        </tbody>
-    </table>
-}
-else
-{
-    <h3>Loading...</h3>
-}
+<DxLoadingPanel @bind-Visible="LoadingVisible" IsContentBlocked="true" ApplyBackgroundShading="true" IndicatorAreaVisible="false" Text="Fetching departments...">
+    <DxGrid
+        Data="@Employees"
+        KeyFieldName="Id"
+        PageSize="10"
+        ColumnResizeMode="GridColumnResizeMode.NextColumn"
+        TextWrapEnabled="false"
+        EditModelSaving="EditEmployee"
+        DataItemDeleting="DeleteEmployee"
+        EditMode="GridEditMode.EditRow"
+        CustomizeDataRowEditor="CustomizeGridEditor"
+        HighlightRowOnHover="true"
+           
+    >
+        <Columns>
+            <DxGridDataColumn FieldName="Name" MinWidth="30" />
+            <DxGridDataColumn FieldName="Position" Width="10%" />
+            <DxGridDataColumn FieldName="DepartmentId" Caption="Department" Width="10%">
+                <EditSettings>
+                    <DxComboBoxSettings Data="Departments" ValueFieldName="Id" TextFieldName="Name" ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto" />
+                </EditSettings>
+            </DxGridDataColumn>
+            <DxGridDataColumn FieldName="Salary" Width="10%" />
+            <DxGridCommandColumn Width="10%" />
+        </Columns>
+    </DxGrid>
+</DxLoadingPanel>
 
 <p>@statusText</p>
 
 @code {
-    public void EditEmployee(int id)
+    public async Task EditEmployee(GridEditModelSavingEventArgs args)
     {
-        NavigationManager.NavigateTo($"/edit/{id}");
+        var employee = (EmployeeModel)args.EditModel;
+        if(args.IsNew)
+        {
+            var response = await EmployeeService.Add(employee);
+            statusText = response.Message ?? string.Empty;
+        }
+        else
+        {
+            var response = await EmployeeService.Update(employee);
+            statusText = response.Message ?? string.Empty;
+        }
+
+        await UpdateModels();
     }
 
-    public async Task DeleteEmployee(int id)
+    public void CustomizeGridEditor(GridCustomizeDataRowEditorEventArgs args)
     {
-        var value = await JS.InvokeAsync<bool>("confirm", [$"Are you sure sure you want to delete employee with id = {id}?"]);
-        if (!value) return;
+        var settings = (IEditSettings)args.EditSettings;
+        settings.ShowValidationSuccessState = true;
+        settings.ValidationEnabled = true;
+    }
+
+    public async Task DeleteEmployee(GridDataItemDeletingEventArgs args)
+    {
+        var id = ((EmployeeModel)args.DataItem).Id;
 
         var response = await EmployeeService.Delete(id);
         if (!response.Success)
@@ -64,17 +76,24 @@ else
             return;
         }
 
-        await UpdateEmployees();
+        await UpdateModels();
     }
 
-    protected override async Task OnInitializedAsync() => await UpdateEmployees();
+    protected override async Task OnInitializedAsync() => await UpdateModels();
 
-    private async Task UpdateEmployees()
+    private async Task UpdateModels()
     {
+        LoadingVisible = true;
+        StateHasChanged();
         var employeesResponse = await EmployeeService.GetAll();
-        employees = employeesResponse.Value ?? [];
+        Employees = employeesResponse.Value ?? [];
+        var departmentsResponse = await DepartmentService.GetAll();
+        Departments = departmentsResponse.Value;
+        LoadingVisible = false;
     }
 
-    IEnumerable<EmployeeModel>? employees = null;
+    public IEnumerable<DepartmentModel>? Departments { get; set; } = null;
+    public IEnumerable<EmployeeModel>? Employees = null;
+    public bool LoadingVisible { get; set; } = true;
     private string statusText = string.Empty;
 }
