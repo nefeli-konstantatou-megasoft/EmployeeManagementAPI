@@ -14,16 +14,59 @@
     <DxGrid
         Data="@Employees"
         KeyFieldName="Id"
-        PageSize="10"
+        ShowAllRows="true"
         ColumnResizeMode="GridColumnResizeMode.NextColumn"
         TextWrapEnabled="false"
         EditModelSaving="EditEmployee"
         DataItemDeleting="DeleteEmployee"
         EditMode="GridEditMode.EditRow"
         CustomizeDataRowEditor="CustomizeGridEditor"
-        HighlightRowOnHover="true"
-           
-    >
+        HighlightRowOnHover="true">
+        <ToolbarTemplate>
+            <DxToolbar ItemRenderStyleMode="ToolbarRenderStyleMode.Plain">
+                <DxToolbarItem BeginGroup="true">
+                    <Template Context="toolbar_item_context">
+                        Sort by:
+                        <DxComboBox Text="Select" Data="SortOptions" @bind-Value="Sorting.SortField" />
+                    </Template>
+                </DxToolbarItem>
+                <DxToolbarItem>
+                    <Template Context="toolbar_item_context">
+                        Descending:
+                        <DxCheckBox @bind-Checked="SortOrderBool" />
+                    </Template>
+                </DxToolbarItem>
+                <DxToolbarItem BeginGroup="true">
+                    <Template Context="toolbar_item_context">
+                        Filter by:
+                        <DxComboBox Text="Select" Data="FilterOptions" @bind-Value="Filter.FilterField" />
+                    </Template>
+                </DxToolbarItem>
+                <DxToolbarItem>
+                    <Template Context="toolbar_item_context">
+                        Filter body:
+                        <DxSearchBox @bind-Text="Filter.FilterBody" BindValueMode="BindValueMode.OnInput" ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto" aria-label="Search" />
+                    </Template>
+                </DxToolbarItem>
+                <DxToolbarItem BeginGroup="true">
+                    <Template Context="toolbar_item_context">
+                        Page:
+                        <DxSpinEdit @bind-Value="Paging.PageIndex" />
+                    </Template>
+                </DxToolbarItem>
+                <DxToolbarItem>
+                    <Template Context="toolbar_item_context">
+                        Page size:
+                        <DxSpinEdit @bind-Value="Paging.PageSize" />
+                    </Template>
+                </DxToolbarItem>
+                <DxToolbarItem BeginGroup="true">
+                    <Template Context="toolbar_item_context">
+                        <DxButton Text="Apply" Click="UpdateModels" />
+                    </Template>
+                </DxToolbarItem>
+            </DxToolbar>
+        </ToolbarTemplate>
         <Columns>
             <DxGridDataColumn FieldName="Name" MinWidth="30" />
             <DxGridDataColumn FieldName="Position" Width="10%" />
@@ -85,13 +128,26 @@
     {
         LoadingVisible = true;
         StateHasChanged();
-        var employeesResponse = await EmployeeService.GetAll();
+
+
+        Filter.FilterField = InvalidFields.Contains(Filter.FilterField) ? null : Filter.FilterField;
+        Sorting.SortField = InvalidFields.Contains(Sorting.SortField) ? null : Sorting.SortField;
+        Sorting.SortOrder = SortOrderBool ? SortingOrder.Descending : SortingOrder.Ascending;
+
+        var employeesResponse = await EmployeeService.GetAll(Sorting, Filter, Paging);
         Employees = employeesResponse.Value ?? [];
         var departmentsResponse = await DepartmentService.GetAll();
         Departments = departmentsResponse.Value;
         LoadingVisible = false;
     }
 
+    public bool SortOrderBool { get; set; } = false;
+    Sorting Sorting { get; set; } = new();
+    Filter Filter { get; set; } = new();
+    Paging Paging { get; set; } = new();
+    private readonly IEnumerable<string> InvalidFields = ["None", "Select"];
+    public List<string> SortOptions { get; } = ["None", "Name", "Salary"];
+    public List<string> FilterOptions { get; } = ["None", "Position", "Department"];
     public IEnumerable<DepartmentModel>? Departments { get; set; } = null;
     public IEnumerable<EmployeeModel>? Employees = null;
     public bool LoadingVisible { get; set; } = true;
