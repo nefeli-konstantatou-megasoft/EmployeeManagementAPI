@@ -50,19 +50,13 @@
                 </DxToolbarItem>
                 <DxToolbarItem BeginGroup="true">
                     <Template Context="toolbar_item_context">
-                        Page:
-                        <DxSpinEdit @bind-Value="Paging.PageIndex" />
-                    </Template>
-                </DxToolbarItem>
-                <DxToolbarItem>
-                    <Template Context="toolbar_item_context">
                         Page size:
                         <DxSpinEdit @bind-Value="Paging.PageSize" />
                     </Template>
                 </DxToolbarItem>
                 <DxToolbarItem BeginGroup="true">
                     <Template Context="toolbar_item_context">
-                        <DxButton Text="Apply" Click="UpdateModels" />
+                        <DxButton Text="Apply" Click="() => UpdateModels()" />
                     </Template>
                 </DxToolbarItem>
             </DxToolbar>
@@ -79,6 +73,7 @@
             <DxGridCommandColumn Width="10%" />
         </Columns>
     </DxGrid>
+    <DxPager PageCount="int.MaxValue" ActivePageIndexChanged="UpdateModels" NavigationMode="PagerNavigationMode.NumericButtons" VisibleNumericButtonCount="5" />
 </DxLoadingPanel>
 
 <p>@statusText</p>
@@ -129,8 +124,9 @@
         await UpdateModels();
     }
 
-    private async Task UpdateModels()
+    private async Task UpdateModels(int page = -1)
     {
+        if (page != -1) Paging.PageIndex = page;
         LoadingVisible = true;
         StateHasChanged();
 
@@ -140,7 +136,7 @@
 
         var employeesResponse = await EmployeeService.GetAll(Sorting, Filter, Paging);
         Employees = employeesResponse.Value ?? [];
-       
+
         LoadingVisible = false;
     }
 
